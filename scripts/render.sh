@@ -258,3 +258,53 @@ render_email() {
 
     printf '#[fg=colour245]%s#[default]' "$email"
 }
+
+# render_stale_indicator — Indicate when cache data is stale
+# Stale = cache file mtime > 2x refresh interval
+# Output: #[fg=colour136]?#[default] (dim yellow question mark)
+# Returns empty string if cache is fresh, missing, or threshold not exceeded
+render_stale_indicator() {
+    local cache_dir
+    cache_dir="$(get_cache_dir)" || return 0
+    local cache_file="${cache_dir}/cache.json"
+
+    # No cache file = nothing to mark as stale
+    [[ ! -f "$cache_file" ]] && return 0
+
+    # Get refresh interval (default 300 seconds = 5 min)
+    local refresh_interval
+    refresh_interval=$(get_tmux_option "@claudux_refresh_interval" "$CLAUDUX_DEFAULT_REFRESH_INTERVAL")
+
+    # Stale threshold = 2x refresh interval
+    local stale_threshold=$(( refresh_interval * 2 ))
+
+    # Get cache file mtime
+    local mtime
+    mtime=$(get_file_mtime "$cache_file") || return 0
+
+    # Calculate age
+    local now age
+    now=$(date +%s)
+    age=$(( now - mtime ))
+
+    # Output stale indicator if age exceeds threshold
+    if [[ $age -ge $stale_threshold ]]; then
+        printf '#[fg=colour136]?#[default]'
+    fi
+}
+
+# render_error — Render error state indicator
+# Reads cache error field. Outputs red [!] with error code.
+# Output: #[fg=colour196][!] auth_failed#[default]
+# Returns 0 silently if no error in cache or cache missing.
+render_error() {
+    local cache_data
+    cache_data=$(cache_read) || return 0
+
+    # Check if error field exists and is non-null
+    local error_code
+    error_code=$(printf '%s' "$cache_data" | jq -r '.error.code // empty')
+    [[ -z "$error_code" ]] && return 0
+
+    printf '#[fg=colour196][!] %s#[default]' "$error_code"
+}
