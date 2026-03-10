@@ -1,7 +1,7 @@
 class Claudux < Formula
   desc "Claude API usage monitor for your tmux status bar"
-  homepage "https://github.com/jlq/claudux"
-  url "https://github.com/jlq/claudux/archive/refs/tags/v0.1.0.tar.gz"
+  homepage "https://github.com/jqueguiner/claudux"
+  url "https://github.com/jqueguiner/claudux/archive/refs/tags/v0.1.0.tar.gz"
   sha256 "PLACEHOLDER"
   license "MIT"
 
