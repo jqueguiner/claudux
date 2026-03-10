@@ -1,0 +1,22 @@
+# Credentials — never commit API keys
+credentials
+**/credentials
+*.credentials
+
+# Cache files — runtime data
+cache.json
+cache.json.tmp
+cache.XXXXXX
+*.lock
+*.lock.d/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
