@@ -6,6 +6,7 @@
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$CURRENT_DIR/helpers.sh"
 source "$CURRENT_DIR/credentials.sh"
+source "$CURRENT_DIR/profiles.sh"
 
 # detect_mode — Determine data source mode
 # Priority: 1) @claudux_mode tmux option, 2) Admin API key, 3) local JSONL logs
@@ -13,7 +14,14 @@ source "$CURRENT_DIR/credentials.sh"
 # Logs: detection reason to stderr
 # Returns: 0 on success, 1 when no source available
 detect_mode() {
-    # Check for forced mode via tmux option
+    local profile_mode
+    profile_mode=$(get_profile_mode 2>/dev/null)
+    if [[ "$profile_mode" == "org" ]] || [[ "$profile_mode" == "local" ]]; then
+        echo "claudux: using $profile_mode mode (profile)" >&2
+        echo "$profile_mode"
+        return 0
+    fi
+
     local forced_mode
     forced_mode=$(get_tmux_option "@claudux_mode" "auto")
 
@@ -29,12 +37,9 @@ detect_mode() {
         return 0
     fi
 
-    # Auto-detection: forced_mode is "auto" or empty
-
-    # Step 1: Try loading API key and check if it's an admin key
     local api_key
-    api_key=$(load_api_key 2>/dev/null)
-    if [[ $? -eq 0 ]] && [[ -n "$api_key" ]]; then
+    api_key=$(get_profile_api_key 2>/dev/null) || api_key=$(load_api_key 2>/dev/null) || true
+    if [[ -n "$api_key" ]]; then
         local key_type
         key_type=$(get_key_type "$api_key")
         if [[ "$key_type" == "admin" ]]; then
@@ -44,10 +49,11 @@ detect_mode() {
         fi
     fi
 
-    # Step 2: Check for local Claude Code session logs
-    if [[ -d "$HOME/.claude/projects" ]]; then
+    local claude_dir
+    claude_dir=$(get_profile_claude_dir 2>/dev/null)
+    if [[ -d "$claude_dir/projects" ]]; then
         local log_found
-        log_found=$(find "$HOME/.claude/projects" -name "*.jsonl" -type f 2>/dev/null | head -1)
+        log_found=$(find "$claude_dir/projects" -name "*.jsonl" -type f 2>/dev/null | head -1)
         if [[ -n "$log_found" ]]; then
             echo "claudux: using local mode (JSONL logs found)" >&2
             echo "local"

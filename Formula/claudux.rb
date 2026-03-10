@@ -22,6 +22,9 @@ class Claudux < Formula
 
     # Install CLI tool
     bin.install "bin/claudux-setup"
+
+    # Install man page
+    man1.install "man/claudux.1"
   end
 
   def caveats

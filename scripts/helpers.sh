@@ -66,8 +66,22 @@ get_file_mtime() {
 }
 
 # get_cache_dir — return cache directory path, creating if missing
+# Profile-aware: uses per-profile subdirectory if profiles exist
 get_cache_dir() {
-    local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claudux"
+    local base_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claudux"
+    local config_dir
+    config_dir="$(get_config_dir)"
+    local profiles_file="${config_dir}/profiles.json"
+
+    local cache_dir="$base_dir"
+    if [[ -f "$profiles_file" ]]; then
+        local active
+        active=$(jq -r '.active // empty' "$profiles_file" 2>/dev/null)
+        if [[ -n "$active" ]]; then
+            cache_dir="${base_dir}/${active}"
+        fi
+    fi
+
     if [[ ! -d "$cache_dir" ]]; then
         mkdir -p "$cache_dir" || {
             echo "ERROR: Cannot create cache directory: $cache_dir" >&2

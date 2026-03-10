@@ -21,7 +21,19 @@ claudux_interpolation=(
     "\#{claudux_opus}"
     "\#{claudux_reset}"
     "\#{claudux_email}"
+    "\#{claudux_cost}"
+    "\#{claudux_velocity}"
+    "\#{claudux_context}"
+    "\#{claudux_model}"
+    "\#{claudux_burn}"
+    "\#{claudux_cooldown}"
+    "\#{claudux_sessions}"
+    "\#{claudux_heartbeat}"
+    "\#{claudux_ratelimits}"
+    "\#{claudux_predictor}"
+    "\#{claudux_vitals}"
     "\#{claudux_status}"
+    "\#{claudux_profile}"
 )
 
 claudux_commands=(
@@ -31,7 +43,19 @@ claudux_commands=(
     "#($CURRENT_DIR/scripts/claudux.sh opus)"
     "#($CURRENT_DIR/scripts/claudux.sh reset)"
     "#($CURRENT_DIR/scripts/claudux.sh email)"
+    "#($CURRENT_DIR/scripts/claudux.sh cost)"
+    "#($CURRENT_DIR/scripts/claudux.sh velocity)"
+    "#($CURRENT_DIR/scripts/claudux.sh context)"
+    "#($CURRENT_DIR/scripts/claudux.sh model)"
+    "#($CURRENT_DIR/scripts/claudux.sh burn)"
+    "#($CURRENT_DIR/scripts/claudux.sh cooldown)"
+    "#($CURRENT_DIR/scripts/claudux.sh sessions)"
+    "#($CURRENT_DIR/scripts/claudux.sh heartbeat)"
+    "#($CURRENT_DIR/scripts/claudux.sh ratelimits)"
+    "#($CURRENT_DIR/scripts/claudux.sh predictor)"
+    "#($CURRENT_DIR/scripts/claudux.sh vitals)"
     "#($CURRENT_DIR/scripts/claudux.sh status)"
+    "#($CURRENT_DIR/scripts/claudux.sh profile)"
 )
 
 # do_interpolation — Replace all #{claudux_*} placeholders in a string
@@ -81,6 +105,17 @@ main() {
     # Trigger initial data fetch in background
     # First render will show empty (render functions return silently on missing cache)
     # After fetch completes (a few seconds), next status-interval tick shows data
+    tmux bind-key r run-shell "$CURRENT_DIR/scripts/profiles.sh next" 2>/dev/null || true
+    tmux bind-key R run-shell "$CURRENT_DIR/scripts/profile_selector.sh" 2>/dev/null || true
+
+    local label_key
+    label_key=$(get_tmux_option "@claudux_label_key" "T")
+    tmux bind-key "$label_key" run-shell "$CURRENT_DIR/scripts/toggle_labels.sh" 2>/dev/null || true
+
+    local help_key
+    help_key=$(get_tmux_option "@claudux_help_key" "H")
+    tmux bind-key "$help_key" run-shell "$CURRENT_DIR/scripts/help_popup.sh" 2>/dev/null || true
+
     tmux run-shell -b "$CURRENT_DIR/scripts/fetch.sh"
 }
 

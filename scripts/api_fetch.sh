@@ -255,9 +255,19 @@ api_fetch() {
         ] | add // 0
     ')
 
-    # Build normalized JSON
-    # Note: limit=0 for org mode because API doesn't expose tier limits
-    # Note: reset_at=0 because billing cycle boundaries are unknown
+    local weekly_cost=0 monthly_cost=0
+    local cost_7d cost_30d
+    cost_7d=$(fetch_cost_report "$api_key" 7 2>/dev/null)
+    if [[ -n "$cost_7d" ]]; then
+        weekly_cost=$(printf '%s' "$cost_7d" | jq '[.[].results[] | .cost_cents // 0] | add // 0 | . / 100' 2>/dev/null)
+    fi
+    cost_30d=$(fetch_cost_report "$api_key" 30 2>/dev/null)
+    if [[ -n "$cost_30d" ]]; then
+        monthly_cost=$(printf '%s' "$cost_30d" | jq '[.[].results[] | .cost_cents // 0] | add // 0 | . / 100' 2>/dev/null)
+    fi
+    [[ -z "$weekly_cost" ]] && weekly_cost=0
+    [[ -z "$monthly_cost" ]] && monthly_cost=0
+
     printf '{
   "mode": "org",
   "fetched_at": %d,
@@ -268,6 +278,8 @@ api_fetch() {
     "sonnet": {"used": %s, "limit": 0, "unit": "tokens", "reset_at": 0},
     "opus": {"used": %s, "limit": 0, "unit": "tokens", "reset_at": 0}
   },
+  "cost": {"weekly": %s, "monthly": %s, "currency": "USD"},
+  "velocity": {"tokens_1h": 0, "tokens_per_hour": %s, "trend": "stable"},
   "error": null
-}' "$now" "$email" "$weekly_total" "$monthly_total" "$sonnet_tokens" "$opus_tokens"
+}' "$now" "$email" "$weekly_total" "$monthly_total" "$sonnet_tokens" "$opus_tokens" "$weekly_cost" "$monthly_cost" "$(( weekly_total / 168 ))"
 }

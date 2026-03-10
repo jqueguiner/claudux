@@ -1,0 +1,289 @@
+.TH CLAUDUX 1 "March 2026" "claudux 0.1.0" "User Commands"
+.SH NAME
+claudux \- Claude API usage monitor for tmux
+.SH SYNOPSIS
+.B claudux-setup
+.IR command
+.SH DESCRIPTION
+.B claudux
+is a tmux plugin that displays Claude API usage metrics in your tmux status bar.
+It supports two data source modes:
+.TP
+.B Local mode
+Parses Claude Code session logs from
+.IR ~/.claude/projects/ .
+No configuration needed for Claude Code subscribers.
+.TP
+.B Org mode
+Fetches usage data from the Anthropic Admin API.
+Requires setting
+.BR ANTHROPIC_ADMIN_API_KEY .
+.SH COMMANDS
+.TP
+.B claudux-setup install
+Add claudux segments to
+.IR ~/.tmux.conf .
+.TP
+.B claudux-setup uninstall
+Remove claudux segments from
+.IR ~/.tmux.conf .
+.TP
+.B claudux-setup status
+Show installation status, dependencies, and cache info.
+.TP
+.B claudux-setup help
+Show brief usage help.
+.TP
+.B claudux-setup profile list
+List all profiles. Active profile is marked with
+.BR * .
+.TP
+.B claudux-setup profile add \fIname\fR [\fB--mode\fR \fIlocal\fR|\fIorg\fR] [\fB--key\fR \fIAPI_KEY\fR] [\fB--dir\fR \fICLAUDE_DIR\fR] [\fB--no-login\fR]
+Add a new profile. If \fB--mode\fR is omitted, an interactive prompt lets you
+select between Claude subscription (local) or Anthropic Console (org).
+For local mode, launches
+.B claude setup-token
+to authenticate the new profile via browser OAuth.
+Each local profile gets its own config directory at
+.IR ~/.claude-claudux/<name> .
+Use \fB--no-login\fR to skip the interactive login.
+For org mode, \fB--key\fR provides the Admin API key.
+.TP
+.B claudux-setup profile remove \fIname\fR
+Remove a profile and its cached data.
+.TP
+.B claudux-setup profile switch \fIname\fR
+Switch to a named profile.
+.TP
+.B claudux-setup profile next
+Rotate to the next profile. Also available via tmux keybinding
+.B Ctrl+B R
+(configurable via
+.BR @claudux_rotate_key ).
+.SH SEGMENTS
+The following format strings can be used in tmux
+.B status-right
+or
+.B status-left
+options:
+.TP
+.B #{claudux_weekly}
+Weekly (7-day) token usage with progress bar and percentage.
+Label:
+.BR "Weekly:" " (verbose) or " "W:" " (compact)."
+.TP
+.B #{claudux_monthly}
+Monthly (30-day) token usage with progress bar and percentage.
+Label:
+.BR "Monthly:" " (verbose) or " "M:" " (compact)."
+.TP
+.B #{claudux_sonnet}
+Sonnet model usage with progress bar and percentage.
+Label:
+.BR "Sonnet:" " (verbose) or " "S:" " (compact)."
+.TP
+.B #{claudux_opus}
+Opus model usage with progress bar and percentage.
+Label:
+.BR "Opus:" " (verbose) or " "O:" " (compact)."
+.TP
+.B #{claudux_reset}
+Quota reset countdowns for weekly and monthly windows.
+Labels:
+.BR "Reset Weekly:" " / " "Reset Monthly:" " (verbose) or "
+.BR "RW:" " / " "RM:" " (compact)."
+Adaptive format: Xd Yh (>24h), Xh Ym (<24h), Xm (<1h).
+.TP
+.B #{claudux_email}
+Account email address (truncated to 20 characters).
+Off by default.
+.TP
+.B #{claudux_profile}
+Active profile name. Label:
+.BR "Profile:" " (verbose) or " "P:" " (compact)."
+.TP
+.B #{claudux_status}
+Error and stale-data indicators. Always shown.
+Displays
+.B [!]
+on errors and
+.B ?
+when cache data is stale.
+.SH TMUX OPTIONS
+All options are set with
+.B set -g @option value
+in
+.IR ~/.tmux.conf .
+.TP
+.B @claudux_mode
+Force data source mode. Values:
+.BR auto " (default), " org ", " local .
+.TP
+.B @claudux_refresh_interval
+Cache refresh interval in seconds. Default:
+.BR 300 " (5 minutes)."
+.TP
+.B @claudux_bar_length
+Number of characters in progress bars. Default:
+.BR 10 .
+Range: 5\(en30.
+.TP
+.B @claudux_warning_threshold
+Percentage at which bars turn yellow. Default:
+.BR 50 .
+.TP
+.B @claudux_critical_threshold
+Percentage at which bars turn red. Default:
+.BR 80 .
+.TP
+.B @claudux_show_weekly
+Show weekly usage segment. Default:
+.BR on .
+.TP
+.B @claudux_show_monthly
+Show monthly usage segment. Default:
+.BR on .
+.TP
+.B @claudux_show_model
+Show per-model usage segments (Sonnet, Opus). Default:
+.BR on .
+.TP
+.B @claudux_show_reset
+Show reset countdown segment. Default:
+.BR on .
+.TP
+.B @claudux_show_email
+Show account email segment. Default:
+.BR off .
+.TP
+.B @claudux_rotate_key
+Tmux key for profile rotation. Default:
+.BR R .
+Bound as Ctrl+B <key>.
+.TP
+.B @claudux_label_mode
+Label display mode. Values:
+.BR verbose " (default), " compact .
+Verbose shows full names (Weekly, Sonnet, Reset Monthly).
+Compact shows initials (W, S, RM).
+.TP
+.B @claudux_label_key
+Tmux key to toggle label mode. Default:
+.BR T .
+Bound as Ctrl+B <key>.
+.TP
+.B @claudux_help_key
+Tmux key to show claudux help popup. Default:
+.BR H .
+Bound as Ctrl+B <key>.
+.SH EXAMPLES
+Basic installation:
+.PP
+.RS
+.nf
+brew tap jqueguiner/claudux
+brew install claudux
+claudux-setup install
+tmux source-file ~/.tmux.conf
+.fi
+.RE
+.PP
+Custom status bar with all segments:
+.PP
+.RS
+.nf
+set -g status-right '#{claudux_sonnet} #{claudux_opus} \\
+#{claudux_weekly} #{claudux_monthly} #{claudux_reset} \\
+#{claudux_status} | %H:%M'
+.fi
+.RE
+.PP
+Org mode setup:
+.PP
+.RS
+.nf
+export ANTHROPIC_ADMIN_API_KEY=sk-ant-admin-...
+.fi
+.RE
+.PP
+Multi-account profiles:
+.PP
+.RS
+.nf
+claudux-setup profile add work --mode local
+claudux-setup profile add personal --mode local
+claudux-setup profile add acme-org --mode org --key sk-ant-admin-...
+claudux-setup profile list
+claudux-setup profile switch personal
+.fi
+.RE
+.PP
+Toggle label mode at runtime:
+.PP
+.RS
+.nf
+Ctrl+B T
+.fi
+.RE
+.PP
+Show claudux help popup:
+.PP
+.RS
+.nf
+Ctrl+B H
+.fi
+.RE
+.PP
+Customize thresholds and bar length:
+.PP
+.RS
+.nf
+set -g @claudux_warning_threshold 40
+set -g @claudux_critical_threshold 70
+set -g @claudux_bar_length 15
+.fi
+.RE
+.SH FILES
+.TP
+.I ~/.tmux.conf
+Tmux configuration file where claudux segments are registered.
+.TP
+.I ~/.cache/claudux/cache.json
+Cached usage data. Automatically refreshed based on
+.BR @claudux_refresh_interval .
+.TP
+.I ~/.claude/projects/
+Claude Code session logs directory (local mode source).
+.SH ENVIRONMENT
+.TP
+.B ANTHROPIC_ADMIN_API_KEY
+Anthropic Admin API key for org mode. Must start with
+.BR sk-ant-admin- .
+.TP
+.B XDG_CACHE_HOME
+Override cache directory location. Defaults to
+.IR ~/.cache .
+.SH KEYBINDINGS
+All keybindings use the tmux prefix (default Ctrl+B).
+.TP
+.B Ctrl+B H
+Show claudux help popup with all keybindings and segments.
+Configurable via
+.BR @claudux_help_key .
+.TP
+.B Ctrl+B R
+Rotate to next profile.
+Configurable via
+.BR @claudux_rotate_key .
+.TP
+.B Ctrl+B T
+Toggle between verbose and compact label mode.
+Configurable via
+.BR @claudux_label_key .
+.SH SEE ALSO
+.BR tmux (1),
+.BR jq (1)
+.SH AUTHORS
+Jean-Louis Queguiner
+.SH BUGS
+Report bugs at https://github.com/jqueguiner/claudux/issues

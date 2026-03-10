@@ -9,9 +9,15 @@ source "$CURRENT_DIR/helpers.sh"
 source "$CURRENT_DIR/cache.sh"
 source "$CURRENT_DIR/render.sh"
 
+if [[ "$(get_tmux_option "@claudux_auto_profile" "off")" == "on" ]]; then
+    source "$CURRENT_DIR/auto_profile.sh"
+fi
+
 # ─── Background Refresh ────────────────────────────────────────────────────
 # If cache is stale, spawn fetch.sh in background via tmux run-shell -b
 # PID file prevents duplicate fetches; fetch.sh has its own lock as second guard
+
+write_live_cache 2>/dev/null &
 
 if is_cache_stale; then
     cache_dir="$(get_cache_dir 2>/dev/null)"
@@ -46,8 +52,43 @@ case "${1:-}" in
     email)
         [[ "$(get_tmux_option "@claudux_show_email" "$CLAUDUX_DEFAULT_SHOW_EMAIL")" == "on" ]] && render_email
         ;;
+    cost)
+        [[ "$(get_tmux_option "@claudux_show_cost" "$CLAUDUX_DEFAULT_SHOW_COST")" == "on" ]] && render_cost
+        ;;
+    velocity)
+        [[ "$(get_tmux_option "@claudux_show_velocity" "$CLAUDUX_DEFAULT_SHOW_VELOCITY")" == "on" ]] && render_velocity
+        ;;
+    context)
+        [[ "$(get_tmux_option "@claudux_show_context" "$CLAUDUX_DEFAULT_SHOW_CONTEXT")" == "on" ]] && render_context
+        ;;
+    model)
+        [[ "$(get_tmux_option "@claudux_show_model_indicator" "$CLAUDUX_DEFAULT_SHOW_MODEL_INDICATOR")" == "on" ]] && render_model
+        ;;
+    burn)
+        [[ "$(get_tmux_option "@claudux_show_burn" "$CLAUDUX_DEFAULT_SHOW_BURN")" == "on" ]] && render_burn_rate
+        ;;
+    cooldown)
+        render_cooldown
+        ;;
+    sessions)
+        [[ "$(get_tmux_option "@claudux_show_sessions" "$CLAUDUX_DEFAULT_SHOW_SESSIONS")" == "on" ]] && render_sessions
+        ;;
+    heartbeat)
+        render_heartbeat
+        ;;
+    ratelimits)
+        [[ "$(get_tmux_option "@claudux_show_rate_limits" "on")" == "on" ]] && render_rate_limit_history
+        ;;
+    predictor)
+        [[ "$(get_tmux_option "@claudux_show_predictor" "on")" == "on" ]] && render_rate_limit_predictor
+        ;;
+    vitals)
+        [[ "$(get_tmux_option "@claudux_show_vitals" "on")" == "on" ]] && render_vitals
+        ;;
+    profile)
+        render_profile
+        ;;
     status)
-        # Combine error + stale indicators into single output (always shown, no toggle)
         err="$(render_error)"
         stale="$(render_stale_indicator)"
         output="${err}${stale}"

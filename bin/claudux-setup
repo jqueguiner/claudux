@@ -4,22 +4,22 @@ set -euo pipefail
 
 CLAUDUX_DIR=""
 TMUX_CONF="${HOME}/.tmux.conf"
+SCRIPTS_DIR=""
 
 # Resolve where claudux is installed
 resolve_claudux_dir() {
     local self_dir
     self_dir="$(cd "$(dirname "$0")" && pwd)"
 
-    # If installed via Homebrew: bin/ is in $(brew --prefix)/bin, scripts in $(brew --prefix)/share/claudux
     if [[ -d "${self_dir}/../share/claudux/scripts" ]]; then
         CLAUDUX_DIR="${self_dir}/../share/claudux"
-    # If installed manually: bin/ is next to scripts/
     elif [[ -d "${self_dir}/../scripts" ]]; then
         CLAUDUX_DIR="$(cd "${self_dir}/.." && pwd)"
     else
         echo "Error: Cannot find claudux scripts directory." >&2
         exit 1
     fi
+    SCRIPTS_DIR="$CLAUDUX_DIR/scripts"
 }
 
 cmd_install() {
@@ -44,7 +44,8 @@ cmd_install() {
 
 # Claudux — Claude API usage monitor
 set -g status-right-length 200
-set -g status-right '#(${scripts_dir}/claudux.sh weekly) #(${scripts_dir}/claudux.sh sonnet) #(${scripts_dir}/claudux.sh opus) #(${scripts_dir}/claudux.sh reset) #(${scripts_dir}/claudux.sh status) | %H:%M'
+set -g status-right '#(${scripts_dir}/claudux.sh profile) #(${scripts_dir}/claudux.sh sonnet) #(${scripts_dir}/claudux.sh opus) #(${scripts_dir}/claudux.sh weekly) #(${scripts_dir}/claudux.sh monthly) #(${scripts_dir}/claudux.sh cost) #(${scripts_dir}/claudux.sh velocity) #(${scripts_dir}/claudux.sh reset) #(${scripts_dir}/claudux.sh status) | %H:%M'
+run-shell '${CLAUDUX_DIR}/claudux.tmux'
 EOF
 
     echo "✓ claudux added to $TMUX_CONF"
@@ -105,15 +106,137 @@ cmd_status() {
     fi
 }
 
+cmd_profile() {
+    resolve_claudux_dir
+    source "$SCRIPTS_DIR/profiles.sh"
+
+    local subcmd="${1:-list}"
+    shift 2>/dev/null || true
+
+    case "$subcmd" in
+        add)
+            local name="" mode="" key="" dir="" login=true
+            [[ -n "${1:-}" ]] && name="$1" && shift
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    --mode)      mode="$2"; shift 2 ;;
+                    --key)       key="$2"; shift 2 ;;
+                    --dir)       dir="$2"; shift 2 ;;
+                    --no-login)  login=false; shift ;;
+                    *)           shift ;;
+                esac
+            done
+            if [[ -z "$name" ]]; then
+                echo "Usage: claudux-setup profile add <name> [--mode local|org] [--key API_KEY] [--dir CLAUDE_DIR] [--no-login]" >&2
+                exit 1
+            fi
+            if [[ -z "$mode" ]]; then
+                _select_mode
+                mode="$_SELECTED_MODE"
+                [[ "$mode" == "org" ]] && key="$_SELECTED_KEY"
+            fi
+            if [[ "$mode" == "local" && -z "$dir" ]]; then
+                dir="${HOME}/.claude-claudux/${name}"
+                mkdir -p "$dir"
+                if [[ "$login" == true ]]; then
+                    _run_claude_login "$name" "$dir"
+                fi
+            fi
+            [[ -z "$dir" ]] && dir="$HOME/.claude"
+            profile_add "$name" "$mode" "$key" "$dir"
+            ;;
+        remove|delete)
+            [[ -z "${1:-}" ]] && echo "Usage: claudux-setup profile delete <name>" >&2 && exit 1
+            profile_remove "$1"
+            ;;
+        switch)
+            [[ -z "${1:-}" ]] && echo "Usage: claudux-setup profile switch <name>" >&2 && exit 1
+            profile_switch "$1"
+            ;;
+        next)
+            profile_next
+            ;;
+        list)
+            profile_list
+            ;;
+        *)
+            echo "Usage: claudux-setup profile <add|delete|switch|next|list>" >&2
+            exit 1
+            ;;
+    esac
+}
+
+_select_mode() {
+    _SELECTED_MODE=""
+    _SELECTED_KEY=""
+    echo ""
+    echo "  Select login method:"
+    echo ""
+    echo "   1. Claude account with subscription"
+    echo "      Pro, Max, Team, or Enterprise"
+    echo ""
+    echo "   2. Anthropic Console account"
+    echo "      API usage billing (org mode)"
+    echo ""
+    local choice
+    read -r -p "  > " choice
+    case "$choice" in
+        1) _SELECTED_MODE="local" ;;
+        2)
+            _SELECTED_MODE="org"
+            echo ""
+            read -r -p "  Admin API key (sk-ant-admin-...): " _SELECTED_KEY
+            if [[ -z "$_SELECTED_KEY" ]]; then
+                echo "Error: API key is required for org mode." >&2
+                exit 1
+            fi
+            ;;
+        *)
+            echo "Invalid choice." >&2
+            exit 1
+            ;;
+    esac
+}
+
+_run_claude_login() {
+    local name="$1" dir="$2"
+    if ! command -v claude >/dev/null 2>&1; then
+        echo "Warning: 'claude' CLI not found. Skipping login." >&2
+        echo "You can manually log in later: CLAUDE_CONFIG_DIR='$dir' claude setup-token" >&2
+        return 0
+    fi
+    echo ""
+    echo "Launching Claude login for profile '$name'..."
+    echo "A browser window will open for authentication."
+    echo ""
+    CLAUDE_CONFIG_DIR="$dir" claude setup-token
+    local rc=$?
+    if [[ $rc -ne 0 ]]; then
+        echo "Warning: Login exited with code $rc. Profile will be created anyway." >&2
+        echo "You can retry: CLAUDE_CONFIG_DIR='$dir' claude setup-token" >&2
+    fi
+}
+
 cmd_help() {
     cat << 'EOF'
 claudux-setup — Configure claudux tmux plugin
 
 Usage:
-  claudux-setup install     Add claudux to ~/.tmux.conf
-  claudux-setup uninstall   Remove claudux from ~/.tmux.conf
-  claudux-setup status      Show installation status and dependencies
-  claudux-setup help        Show this help
+  claudux-setup install              Add claudux to ~/.tmux.conf
+  claudux-setup uninstall            Remove claudux from ~/.tmux.conf
+  claudux-setup status               Show installation status and dependencies
+  claudux-setup profile list         List all profiles (* = active)
+  claudux-setup profile add <name>   Add a profile (interactive login)
+    --mode local|org                 Data source mode (prompted if omitted)
+    --key API_KEY                    Anthropic Admin API key (org mode)
+    --dir CLAUDE_DIR                 Claude config directory (local mode)
+    --no-login                       Skip interactive Claude login
+  claudux-setup profile delete <name>
+  claudux-setup profile switch <name>
+  claudux-setup profile next         Rotate to next profile
+  claudux-setup help                 Show this help
+
+Keybinding: Ctrl+B R to rotate profiles (configurable via @claudux_rotate_key)
 
 After install, reload tmux:
   tmux source-file ~/.tmux.conf
@@ -124,6 +247,7 @@ case "${1:-help}" in
     install)   cmd_install ;;
     uninstall) cmd_uninstall ;;
     status)    cmd_status ;;
+    profile)   shift; cmd_profile "$@" ;;
     help|--help|-h) cmd_help ;;
     *)
         echo "Unknown command: $1"
