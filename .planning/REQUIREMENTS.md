@@ -89,13 +89,42 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| — | — | Pending |
+| PLUG-01 | Phase 5: Plugin Integration | Pending |
+| PLUG-02 | Phase 5: Plugin Integration | Pending |
+| PLUG-03 | Phase 5: Plugin Integration | Pending |
+| PLUG-04 | Phase 5: Plugin Integration | Pending |
+| PLUG-05 | Phase 1: Foundation Infrastructure | Pending |
+| DATA-01 | Phase 2: Data Sources | Pending |
+| DATA-02 | Phase 2: Data Sources | Pending |
+| DATA-03 | Phase 2: Data Sources | Pending |
+| DATA-04 | Phase 1: Foundation Infrastructure | Pending |
+| DATA-05 | Phase 1: Foundation Infrastructure | Pending |
+| DISP-01 | Phase 3: Progress Bar Rendering | Pending |
+| DISP-02 | Phase 3: Progress Bar Rendering | Pending |
+| DISP-03 | Phase 3: Progress Bar Rendering | Pending |
+| DISP-04 | Phase 3: Progress Bar Rendering | Pending |
+| DISP-05 | Phase 4: Metadata & Status Display | Pending |
+| DISP-06 | Phase 4: Metadata & Status Display | Pending |
+| DISP-07 | Phase 3: Progress Bar Rendering | Pending |
+| DISP-08 | Phase 4: Metadata & Status Display | Pending |
+| DISP-09 | Phase 4: Metadata & Status Display | Pending |
+| CONF-01 | Phase 6: User Configuration | Pending |
+| CONF-02 | Phase 6: User Configuration | Pending |
+| CONF-03 | Phase 6: User Configuration | Pending |
+| CONF-04 | Phase 1: Foundation Infrastructure | Pending |
+| CONF-05 | Phase 6: User Configuration | Pending |
+| SECR-01 | Phase 1: Foundation Infrastructure | Pending |
+| SECR-02 | Phase 1: Foundation Infrastructure | Pending |
+| SECR-03 | Phase 1: Foundation Infrastructure | Pending |
+| DOCS-01 | Phase 7: Documentation & Distribution | Pending |
+| DOCS-02 | Phase 7: Documentation & Distribution | Pending |
+| DOCS-03 | Phase 7: Documentation & Distribution | Pending |
 
 **Coverage:**
-- v1 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26 ⚠️
+- v1 requirements: 30 total
+- Mapped to phases: 30
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-10*
-*Last updated: 2026-03-10 after initial definition*
+*Last updated: 2026-03-10 after roadmap creation*
