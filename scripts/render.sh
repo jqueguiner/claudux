@@ -106,3 +106,67 @@ render_monthly() {
 
     printf '#[fg=colour245]M:#[default] %s %d%%' "$(render_bar "$pct" "$bar_length")" "$pct"
 }
+
+# render_model_sonnet — Render Sonnet model usage progress bar
+# Reads cache, extracts models.sonnet.used/models.sonnet.limit, outputs labeled bar
+# Output: #[fg=colour245]S:#[default] [████░░░░░░] XX%
+# Returns 0 silently if cache missing, errored, model not in cache, or limit=0
+render_model_sonnet() {
+    local cache_data
+    cache_data=$(cache_read) || return 0
+
+    # Check for error in cache
+    printf '%s' "$cache_data" | jq -e '.error == null' >/dev/null 2>&1 || return 0
+
+    # Check if sonnet model exists in cache
+    printf '%s' "$cache_data" | jq -e '.models.sonnet' >/dev/null 2>&1 || return 0
+
+    local used limit
+    used=$(printf '%s' "$cache_data" | jq -r '.models.sonnet.used // 0')
+    limit=$(printf '%s' "$cache_data" | jq -r '.models.sonnet.limit // 0')
+
+    # Skip if limit is 0 (org mode doesn't expose model limits)
+    [[ "$limit" -eq 0 ]] 2>/dev/null && return 0
+
+    # Calculate percentage
+    local pct=$(( (used * 100) / limit ))
+    [[ $pct -gt 100 ]] && pct=100
+    [[ $pct -lt 0 ]] && pct=0
+
+    local bar_length
+    bar_length=$(get_tmux_option "@claudux_bar_length" "$CLAUDUX_DEFAULT_BAR_LENGTH")
+
+    printf '#[fg=colour245]S:#[default] %s %d%%' "$(render_bar "$pct" "$bar_length")" "$pct"
+}
+
+# render_model_opus — Render Opus model usage progress bar
+# Reads cache, extracts models.opus.used/models.opus.limit, outputs labeled bar
+# Output: #[fg=colour245]O:#[default] [████░░░░░░] XX%
+# Returns 0 silently if cache missing, errored, model not in cache, or limit=0
+render_model_opus() {
+    local cache_data
+    cache_data=$(cache_read) || return 0
+
+    # Check for error in cache
+    printf '%s' "$cache_data" | jq -e '.error == null' >/dev/null 2>&1 || return 0
+
+    # Check if opus model exists in cache
+    printf '%s' "$cache_data" | jq -e '.models.opus' >/dev/null 2>&1 || return 0
+
+    local used limit
+    used=$(printf '%s' "$cache_data" | jq -r '.models.opus.used // 0')
+    limit=$(printf '%s' "$cache_data" | jq -r '.models.opus.limit // 0')
+
+    # Skip if limit is 0 (org mode doesn't expose model limits)
+    [[ "$limit" -eq 0 ]] 2>/dev/null && return 0
+
+    # Calculate percentage
+    local pct=$(( (used * 100) / limit ))
+    [[ $pct -gt 100 ]] && pct=100
+    [[ $pct -lt 0 ]] && pct=0
+
+    local bar_length
+    bar_length=$(get_tmux_option "@claudux_bar_length" "$CLAUDUX_DEFAULT_BAR_LENGTH")
+
+    printf '#[fg=colour245]O:#[default] %s %d%%' "$(render_bar "$pct" "$bar_length")" "$pct"
+}
