@@ -170,3 +170,91 @@ render_model_opus() {
 
     printf '#[fg=colour245]O:#[default] %s %d%%' "$(render_bar "$pct" "$bar_length")" "$pct"
 }
+
+# render_reset — Render quota reset countdown
+# Reads reset_at from cache weekly and monthly sections, picks nearest non-zero.
+# Output: #[fg=colour245]R:#[default] 2h 15m
+# Adaptive format: Xd Yh (>24h), Xh Ym (<24h), Xm (<1h)
+# Returns 0 silently if both reset_at are 0/missing, or if reset is in the past.
+render_reset() {
+    local cache_data
+    cache_data=$(cache_read) || return 0
+
+    # Check for error in cache
+    printf '%s' "$cache_data" | jq -e '.error == null' >/dev/null 2>&1 || return 0
+
+    # Get reset_at from both sections
+    local weekly_reset monthly_reset
+    weekly_reset=$(printf '%s' "$cache_data" | jq -r '.weekly.reset_at // 0')
+    monthly_reset=$(printf '%s' "$cache_data" | jq -r '.monthly.reset_at // 0')
+
+    # Find nearest non-zero reset
+    local reset_at=0
+    if [[ "$weekly_reset" -gt 0 ]] && [[ "$monthly_reset" -gt 0 ]]; then
+        if [[ "$weekly_reset" -le "$monthly_reset" ]]; then
+            reset_at="$weekly_reset"
+        else
+            reset_at="$monthly_reset"
+        fi
+    elif [[ "$weekly_reset" -gt 0 ]]; then
+        reset_at="$weekly_reset"
+    elif [[ "$monthly_reset" -gt 0 ]]; then
+        reset_at="$monthly_reset"
+    fi
+
+    # Silent return if no reset time known
+    [[ "$reset_at" -le 0 ]] 2>/dev/null && return 0
+
+    # Calculate remaining seconds
+    local now remaining
+    now=$(date +%s)
+    remaining=$(( reset_at - now ))
+
+    # Silent return if already past
+    [[ "$remaining" -le 0 ]] && return 0
+
+    # Format based on magnitude
+    local days hours minutes time_str
+    days=$(( remaining / 86400 ))
+    hours=$(( (remaining % 86400) / 3600 ))
+    minutes=$(( (remaining % 3600) / 60 ))
+
+    if [[ "$days" -gt 0 ]]; then
+        time_str="${days}d ${hours}h"
+    elif [[ "$hours" -gt 0 ]]; then
+        time_str="${hours}h ${minutes}m"
+    else
+        # Minimum 1m to avoid showing "0m"
+        [[ "$minutes" -le 0 ]] && minutes=1
+        time_str="${minutes}m"
+    fi
+
+    printf '#[fg=colour245]R:#[default] %s' "$time_str"
+}
+
+# render_email — Render account email
+# Reads account.email from cache, truncates long emails.
+# Output: #[fg=colour245]user@example.com#[default]
+# Returns 0 silently if email is null, empty, or "local".
+render_email() {
+    local cache_data
+    cache_data=$(cache_read) || return 0
+
+    # Check for error in cache
+    printf '%s' "$cache_data" | jq -e '.error == null' >/dev/null 2>&1 || return 0
+
+    # Extract email
+    local email
+    email=$(printf '%s' "$cache_data" | jq -r '.account.email // empty')
+
+    # Silent return if empty, null, or "local" placeholder
+    [[ -z "$email" ]] && return 0
+    [[ "$email" == "local" ]] && return 0
+
+    # Truncate long emails (20 char max + ellipsis)
+    if [[ ${#email} -gt 20 ]]; then
+        email="${email:0:20}..."
+    fi
+
+    printf '#[fg=colour245]%s#[default]' "$email"
+}
