@@ -57,6 +57,14 @@ update_tmux_option() {
 # ─── Main ───────────────────────────────────────────────────────────────────
 
 main() {
+    # Auto-inject default claudux segments if none are present in status-right
+    local current_status_right
+    current_status_right="$(get_tmux_option "status-right" "")"
+    if [[ "$current_status_right" != *"claudux"* ]]; then
+        # Append claudux segments to existing status-right
+        set_tmux_option "status-right" "${current_status_right} #{claudux_weekly} #{claudux_sonnet} #{claudux_opus} #{claudux_reset} #{claudux_status}"
+    fi
+
     # Register format strings in status-right and status-left
     update_tmux_option "status-right"
     update_tmux_option "status-left"
