@@ -13,7 +13,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **PLUG-02**: Plugin installs via manual git clone with documented steps
 - [ ] **PLUG-03**: Plugin provides `#{claudux_*}` format strings users can place in status-left or status-right
 - [ ] **PLUG-04**: Plugin auto-refreshes data on a configurable interval (default: 5 min cache TTL)
-- [ ] **PLUG-05**: Plugin works on Linux (GNU) and macOS (BSD) with tmux 3.0+
+- [x] **PLUG-05**: Plugin works on Linux (GNU) and macOS (BSD) with tmux 3.0+
 
 ### Data Sources
 
@@ -40,7 +40,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CONF-01**: User can toggle which stats are displayed via tmux options (`@claudux_show_*`)
 - [ ] **CONF-02**: User can customize color thresholds via tmux options (`@claudux_warning_threshold`, `@claudux_critical_threshold`)
 - [ ] **CONF-03**: User can set cache refresh interval via tmux option (`@claudux_refresh_interval`)
-- [ ] **CONF-04**: User can configure API key via environment variable or config file (never CLI argument)
+- [x] **CONF-04**: User can configure API key via environment variable or config file (never CLI argument)
 - [ ] **CONF-05**: User can set progress bar length via tmux option (`@claudux_bar_length`)
 
 ### Security
@@ -93,7 +93,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLUG-02 | Phase 5: Plugin Integration | Pending |
 | PLUG-03 | Phase 5: Plugin Integration | Pending |
 | PLUG-04 | Phase 5: Plugin Integration | Pending |
-| PLUG-05 | Phase 1: Foundation Infrastructure | Pending |
+| PLUG-05 | Phase 1: Foundation Infrastructure | Complete |
 | DATA-01 | Phase 2: Data Sources | Pending |
 | DATA-02 | Phase 2: Data Sources | Pending |
 | DATA-03 | Phase 2: Data Sources | Pending |
@@ -111,7 +111,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONF-01 | Phase 6: User Configuration | Pending |
 | CONF-02 | Phase 6: User Configuration | Pending |
 | CONF-03 | Phase 6: User Configuration | Pending |
-| CONF-04 | Phase 1: Foundation Infrastructure | Pending |
+| CONF-04 | Phase 1: Foundation Infrastructure | Complete |
 | CONF-05 | Phase 6: User Configuration | Pending |
 | SECR-01 | Phase 1: Foundation Infrastructure | Pending |
 | SECR-02 | Phase 1: Foundation Infrastructure | Pending |
