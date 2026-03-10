@@ -20,8 +20,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **DATA-01**: Plugin fetches usage data from Anthropic Admin API for organization users (Admin API key)
 - [ ] **DATA-02**: Plugin parses local Claude Code JSONL session logs for subscription users (no API key needed)
 - [ ] **DATA-03**: Plugin auto-detects data source mode based on available credentials (org vs local)
-- [ ] **DATA-04**: Plugin caches API responses to a file with TTL to avoid rate limits and status bar lag
-- [ ] **DATA-05**: Plugin never makes synchronous API calls from the tmux status bar process
+- [x] **DATA-04**: Plugin caches API responses to a file with TTL to avoid rate limits and status bar lag
+- [x] **DATA-05**: Plugin never makes synchronous API calls from the tmux status bar process
 
 ### Quota Display
 
@@ -45,9 +45,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Security
 
-- [ ] **SECR-01**: API key is read from env var (`$ANTHROPIC_ADMIN_API_KEY`) or config file with 600 permissions
-- [ ] **SECR-02**: API key is never passed as a CLI argument (not visible in `ps aux`)
-- [ ] **SECR-03**: Plugin ships with .gitignore covering config files containing credentials
+- [x] **SECR-01**: API key is read from env var (`$ANTHROPIC_ADMIN_API_KEY`) or config file with 600 permissions
+- [x] **SECR-02**: API key is never passed as a CLI argument (not visible in `ps aux`)
+- [x] **SECR-03**: Plugin ships with .gitignore covering config files containing credentials
 
 ### Documentation
 
@@ -97,8 +97,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DATA-01 | Phase 2: Data Sources | Pending |
 | DATA-02 | Phase 2: Data Sources | Pending |
 | DATA-03 | Phase 2: Data Sources | Pending |
-| DATA-04 | Phase 1: Foundation Infrastructure | Pending |
-| DATA-05 | Phase 1: Foundation Infrastructure | Pending |
+| DATA-04 | Phase 1: Foundation Infrastructure | Complete |
+| DATA-05 | Phase 1: Foundation Infrastructure | Complete |
 | DISP-01 | Phase 3: Progress Bar Rendering | Pending |
 | DISP-02 | Phase 3: Progress Bar Rendering | Pending |
 | DISP-03 | Phase 3: Progress Bar Rendering | Pending |
@@ -113,9 +113,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONF-03 | Phase 6: User Configuration | Pending |
 | CONF-04 | Phase 1: Foundation Infrastructure | Complete |
 | CONF-05 | Phase 6: User Configuration | Pending |
-| SECR-01 | Phase 1: Foundation Infrastructure | Pending |
-| SECR-02 | Phase 1: Foundation Infrastructure | Pending |
-| SECR-03 | Phase 1: Foundation Infrastructure | Pending |
+| SECR-01 | Phase 1: Foundation Infrastructure | Complete |
+| SECR-02 | Phase 1: Foundation Infrastructure | Complete |
+| SECR-03 | Phase 1: Foundation Infrastructure | Complete |
 | DOCS-01 | Phase 7: Documentation & Distribution | Pending |
 | DOCS-02 | Phase 7: Documentation & Distribution | Pending |
 | DOCS-03 | Phase 7: Documentation & Distribution | Pending |
