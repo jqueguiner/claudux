@@ -15,6 +15,10 @@ render_bar() {
     local pct="$1"
     local bar_length="${2:-10}"
 
+    # Clamp bar_length to valid range (5-30)
+    [[ $bar_length -lt 5 ]] 2>/dev/null && bar_length=5
+    [[ $bar_length -gt 30 ]] 2>/dev/null && bar_length=30
+
     # Clamp percentage
     [[ $pct -lt 0 ]] && pct=0
     [[ $pct -gt 100 ]] && pct=100

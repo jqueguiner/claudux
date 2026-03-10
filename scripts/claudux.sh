@@ -28,14 +28,26 @@ fi
 # Route to render function based on segment name argument
 
 case "${1:-}" in
-    weekly)  render_weekly ;;
-    monthly) render_monthly ;;
-    sonnet)  render_model_sonnet ;;
-    opus)    render_model_opus ;;
-    reset)   render_reset ;;
-    email)   render_email ;;
+    weekly)
+        [[ "$(get_tmux_option "@claudux_show_weekly" "$CLAUDUX_DEFAULT_SHOW_WEEKLY")" == "on" ]] && render_weekly
+        ;;
+    monthly)
+        [[ "$(get_tmux_option "@claudux_show_monthly" "$CLAUDUX_DEFAULT_SHOW_MONTHLY")" == "on" ]] && render_monthly
+        ;;
+    sonnet)
+        [[ "$(get_tmux_option "@claudux_show_model" "$CLAUDUX_DEFAULT_SHOW_MODEL")" == "on" ]] && render_model_sonnet
+        ;;
+    opus)
+        [[ "$(get_tmux_option "@claudux_show_model" "$CLAUDUX_DEFAULT_SHOW_MODEL")" == "on" ]] && render_model_opus
+        ;;
+    reset)
+        [[ "$(get_tmux_option "@claudux_show_reset" "$CLAUDUX_DEFAULT_SHOW_RESET")" == "on" ]] && render_reset
+        ;;
+    email)
+        [[ "$(get_tmux_option "@claudux_show_email" "$CLAUDUX_DEFAULT_SHOW_EMAIL")" == "on" ]] && render_email
+        ;;
     status)
-        # Combine error + stale indicators into single output
+        # Combine error + stale indicators into single output (always shown, no toggle)
         err="$(render_error)"
         stale="$(render_stale_indicator)"
         output="${err}${stale}"
