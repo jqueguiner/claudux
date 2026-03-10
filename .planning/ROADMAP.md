@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 2: Data Sources** - Admin API client, local JSONL log parser, and auto-detect mode selection
 - [ ] **Phase 3: Progress Bar Rendering** - Quota progress bars with Unicode block characters and color-coded urgency
 - [ ] **Phase 4: Metadata & Status Display** - Reset countdowns, account email, stale data indicator, and error states
-- [ ] **Phase 5: Plugin Integration** - TPM entry point, format string registration, manual install path, and auto-refresh
+- [x] **Phase 5: Plugin Integration** - TPM entry point, format string registration, manual install path, and auto-refresh (completed 2026-03-10)
 - [ ] **Phase 6: User Configuration** - Tmux option toggles for display, thresholds, bar length, and refresh interval
 - [ ] **Phase 7: Documentation & Distribution** - README with install/config/screenshots, Admin API docs, local mode docs
 
@@ -137,6 +137,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. Data Sources | 0/? | Not started | - |
 | 3. Progress Bar Rendering | 0/? | Not started | - |
 | 4. Metadata & Status Display | 0/? | Not started | - |
-| 5. Plugin Integration | 0/? | Not started | - |
+| 5. Plugin Integration | 0/? | Complete    | 2026-03-10 |
 | 6. User Configuration | 0/? | Not started | - |
 | 7. Documentation & Distribution | 0/? | Not started | - |
