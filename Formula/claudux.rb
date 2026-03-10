@@ -27,15 +27,18 @@ class Claudux < Formula
     man1.install "man/claudux.1"
   end
 
+  def post_install
+    system "#{bin}/claudux-setup", "install"
+    if File.exist?("#{ENV["HOME"]}/.tmux.conf") && system("tmux", "list-sessions", [:out, :err] => "/dev/null")
+      system "tmux", "source-file", "#{ENV["HOME"]}/.tmux.conf"
+    end
+  end
+
   def caveats
     <<~EOS
-      To activate claudux in tmux, run:
-        claudux-setup install
+      claudux has been added to ~/.tmux.conf automatically.
 
-      Or add to your ~/.tmux.conf manually:
-        run-shell #{opt_share}/claudux/claudux.tmux
-
-      Then reload tmux:
+      If tmux was not running, reload manually:
         tmux source-file ~/.tmux.conf
 
       For Claude Code subscribers (local mode):
