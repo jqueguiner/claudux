@@ -10,6 +10,7 @@ source "$CURRENT_DIR/cache.sh"
 source "$CURRENT_DIR/detect_mode.sh"
 source "$CURRENT_DIR/api_fetch.sh"
 source "$CURRENT_DIR/local_parse.sh"
+source "$CURRENT_DIR/profiles.sh"
 
 # claudux_fetch — Main orchestration function
 # Acquires lock, checks staleness, detects mode, fetches data, writes cache.
@@ -58,7 +59,7 @@ claudux_fetch() {
     case "$mode" in
         org)
             local api_key
-            api_key=$(load_api_key) || {
+            api_key=$(get_profile_api_key 2>/dev/null) || api_key=$(load_api_key) || {
                 echo "claudux: failed to load API key" >&2
                 return 1
             }
