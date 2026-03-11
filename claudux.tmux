@@ -116,6 +116,10 @@ main() {
     help_key=$(get_tmux_option "@claudux_help_key" "H")
     tmux bind-key "$help_key" run-shell "$CURRENT_DIR/scripts/help_popup.sh" 2>/dev/null || true
 
+    local selector_key
+    selector_key=$(get_tmux_option "@claudux_selector_key" "S")
+    tmux bind-key "$selector_key" run-shell "$CURRENT_DIR/scripts/segment_selector.sh" 2>/dev/null || true
+
     tmux run-shell -b "$CURRENT_DIR/scripts/fetch.sh"
 }
 

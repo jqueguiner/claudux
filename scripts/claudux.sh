@@ -4,6 +4,8 @@
 # Routes segment name to appropriate render_* function from render.sh
 # Triggers background cache refresh when stale (non-blocking)
 
+set +m
+
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$CURRENT_DIR/helpers.sh"
 source "$CURRENT_DIR/cache.sh"
@@ -17,13 +19,12 @@ fi
 # If cache is stale, spawn fetch.sh in background via tmux run-shell -b
 # PID file prevents duplicate fetches; fetch.sh has its own lock as second guard
 
-write_live_cache 2>/dev/null &
+(write_live_cache) >/dev/null 2>&1 &
 
 if is_cache_stale; then
     cache_dir="$(get_cache_dir 2>/dev/null)"
     if [[ -n "$cache_dir" ]]; then
         pid_file="${cache_dir}/fetch.pid"
-        # Only spawn if no fetch is already running
         if [[ ! -f "$pid_file" ]] || ! kill -0 "$(cat "$pid_file" 2>/dev/null)" 2>/dev/null; then
             tmux run-shell -b "echo \$\$ > '${pid_file}' && '${CURRENT_DIR}/fetch.sh'; rm -f '${pid_file}'" 2>/dev/null
         fi

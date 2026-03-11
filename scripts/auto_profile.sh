@@ -10,11 +10,7 @@ auto_switch_profile() {
 
     local claude_dir=""
     local child_pids
-    if [[ "$(get_platform)" == "darwin" ]]; then
-        child_pids=$(pgrep -P "$pane_pid" 2>/dev/null)
-    else
-        child_pids=$(pgrep -P "$pane_pid" 2>/dev/null)
-    fi
+    child_pids=$(pgrep -P "$pane_pid" 2>/dev/null)
 
     local pid
     for pid in $pane_pid $child_pids; do
