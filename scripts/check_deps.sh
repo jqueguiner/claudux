@@ -8,30 +8,46 @@ source "$CURRENT_DIR/helpers.sh"
 
 # check_dependencies — check all required dependencies
 # Returns 0 if all present, 1 if any missing
+_install_hint() {
+    local pkg="$1"
+    if [[ "$(get_platform)" == "darwin" ]]; then
+        printf 'brew install %s' "$pkg"
+    elif command -v apt-get >/dev/null 2>&1; then
+        printf 'sudo apt install %s' "$pkg"
+    elif command -v dnf >/dev/null 2>&1; then
+        printf 'sudo dnf install %s' "$pkg"
+    elif command -v pacman >/dev/null 2>&1; then
+        printf 'sudo pacman -S %s' "$pkg"
+    elif command -v zypper >/dev/null 2>&1; then
+        printf 'sudo zypper install %s' "$pkg"
+    elif command -v apk >/dev/null 2>&1; then
+        printf 'apk add %s' "$pkg"
+    else
+        printf 'install %s via your package manager' "$pkg"
+    fi
+}
+
 check_dependencies() {
     local missing=0
 
-    # Check bash version (need 4.0+)
     local bash_major="${BASH_VERSINFO[0]}"
     if [[ "$bash_major" -lt 4 ]]; then
         tmux display-message \
-            "claudux: Bash 4.0+ required (found $BASH_VERSION). macOS: brew install bash" \
+            "claudux: Bash 4.0+ required (found $BASH_VERSION). $(_install_hint bash)" \
             2>/dev/null || true
         missing=1
     fi
 
-    # Check jq
     if ! command -v jq >/dev/null 2>&1; then
         tmux display-message \
-            "claudux: jq required. Install: brew install jq / sudo apt install jq" \
+            "claudux: jq required. $(_install_hint jq)" \
             2>/dev/null || true
         missing=1
     fi
 
-    # Check curl
     if ! command -v curl >/dev/null 2>&1; then
         tmux display-message \
-            "claudux: curl required. Install: brew install curl / sudo apt install curl" \
+            "claudux: curl required. $(_install_hint curl)" \
             2>/dev/null || true
         missing=1
     fi

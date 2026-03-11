@@ -5,6 +5,7 @@ source "$CURRENT_DIR/helpers.sh"
 rotate_key=$(get_tmux_option "@claudux_rotate_key" "R")
 label_key=$(get_tmux_option "@claudux_label_key" "T")
 help_key=$(get_tmux_option "@claudux_help_key" "H")
+selector_key=$(get_tmux_option "@claudux_selector_key" "S")
 label_mode=$(get_tmux_option "@claudux_label_mode" "$CLAUDUX_DEFAULT_LABEL_MODE")
 
 help_text="
@@ -12,6 +13,7 @@ help_text="
 
  KEYBINDINGS
    Ctrl+B ${help_key}   Show this help
+   Ctrl+B ${selector_key}   Segment selector (toggle visibility)
    Ctrl+B ${rotate_key}   Rotate profile
    Ctrl+B ${label_key}   Toggle labels (current: ${label_mode})
 

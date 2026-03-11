@@ -1,9 +1,16 @@
-name: Release to Homebrew Tap
+name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
@@ -12,29 +19,125 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout claudux
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Create GitHub Release with tarball
+      - name: Compute next version
+        id: version
+        run: |
+          latest=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          if [ -z "$latest" ]; then
+            latest="v0.0.0"
+          fi
+          major=$(echo "$latest" | sed 's/^v//' | cut -d. -f1)
+          minor=$(echo "$latest" | sed 's/^v//' | cut -d. -f2)
+          patch=$(echo "$latest" | sed 's/^v//' | cut -d. -f3)
+          case "${{ inputs.bump }}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          next="v${major}.${minor}.${patch}"
+          echo "tag=$next" >> "$GITHUB_OUTPUT"
+          echo "previous=$latest" >> "$GITHUB_OUTPUT"
+          echo "Bumping $latest -> $next (${{ inputs.bump }})"
+
+      - name: Collect changelog
+        id: changelog
+        run: |
+          prev="${{ steps.version.outputs.previous }}"
+          log=$(git log "${prev}..HEAD" --pretty=format:"- %s (%h)" --no-merges 2>/dev/null || git log --pretty=format:"- %s (%h)" --no-merges -20)
+          diffstat=$(git diff "${prev}..HEAD" --stat 2>/dev/null || echo "initial release")
+          {
+            echo "log<<CHANGELOG_EOF"
+            echo "$log"
+            echo "CHANGELOG_EOF"
+            echo "diffstat<<DIFFSTAT_EOF"
+            echo "$diffstat"
+            echo "DIFFSTAT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes via OpenAI
+        id: notes
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          version="${{ steps.version.outputs.tag }}"
+          prev="${{ steps.version.outputs.previous }}"
+          commits="${{ steps.changelog.outputs.log }}"
+          diffstat="${{ steps.changelog.outputs.diffstat }}"
+
+          prompt="You are a release note writer for an open-source tmux plugin called claudux that monitors Claude Code API usage.
+
+          Write concise, professional GitHub release notes for version ${version} (previous: ${prev}).
+
+          Commits since last release:
+          ${commits}
+
+          File changes:
+          ${diffstat}
+
+          Format the output as markdown with these sections:
+          ## What's New
+          (group changes by category: features, fixes, improvements, docs)
+          ## Upgrade Notes
+          (only if there are breaking changes, otherwise omit this section entirely)
+
+          Keep it concise. No fluff. Use bullet points. Do not invent changes not present in the commits."
+
+          escaped=$(jq -Rs '.' <<< "$prompt")
+
+          body=$(jq -n \
+            --arg model "gpt-4o-mini" \
+            --argjson messages "[{\"role\":\"user\",\"content\":${escaped}}]" \
+            '{model: $model, messages: $messages, temperature: 0.3}')
+
+          response=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$body")
+
+          notes=$(echo "$response" | jq -r '.choices[0].message.content // empty')
+
+          if [ -z "$notes" ]; then
+            echo "OpenAI call failed, falling back to commit log"
+            notes="## What's New
+          ${commits}"
+          fi
+
+          {
+            echo "body<<NOTES_EOF"
+            echo "$notes"
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --title "${{ github.ref_name }}" \
-            --generate-notes
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --notes "${{ steps.notes.outputs.body }}"
 
-      - name: Wait for tarball to be available
+      - name: Wait for tarball availability
         run: sleep 10
 
       - name: Compute SHA256 of release tarball
         id: sha
         run: |
-          VERSION="${{ github.ref_name }}"
-          TARBALL_URL="https://github.com/jqueguiner/claudux/archive/refs/tags/${VERSION}.tar.gz"
-          SHA256=$(curl -sL "$TARBALL_URL" | shasum -a 256 | awk '{print $1}')
-          echo "sha256=${SHA256}" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tarball_url=${TARBALL_URL}" >> "$GITHUB_OUTPUT"
+          version="${{ steps.version.outputs.tag }}"
+          url="https://github.com/jqueguiner/claudux/archive/refs/tags/${version}.tar.gz"
+          sha=$(curl -sL "$url" | sha256sum | awk '{print $1}')
+          echo "sha256=${sha}" >> "$GITHUB_OUTPUT"
+          echo "tarball_url=${url}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout homebrew-claudux tap
         uses: actions/checkout@v4
@@ -45,12 +148,11 @@ jobs:
 
       - name: Update Homebrew formula
         run: |
-          VERSION="${{ steps.sha.outputs.version }}"
-          SHA256="${{ steps.sha.outputs.sha256 }}"
-          TARBALL_URL="${{ steps.sha.outputs.tarball_url }}"
-
-          sed -i "s|url \".*\"|url \"${TARBALL_URL}\"|" homebrew-tap/Formula/claudux.rb
-          sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" homebrew-tap/Formula/claudux.rb
+          version="${{ steps.version.outputs.tag }}"
+          sha="${{ steps.sha.outputs.sha256 }}"
+          url="${{ steps.sha.outputs.tarball_url }}"
+          sed -i "s|url \".*\"|url \"${url}\"|" homebrew-tap/Formula/claudux.rb
+          sed -i "s|sha256 \".*\"|sha256 \"${sha}\"|" homebrew-tap/Formula/claudux.rb
 
       - name: Push updated formula to tap
         run: |
@@ -59,5 +161,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Formula/claudux.rb
           git diff --cached --quiet && echo "No changes" && exit 0
-          git commit -m "Update claudux to ${{ steps.sha.outputs.version }}"
+          git commit -m "Update claudux to ${{ steps.version.outputs.tag }}"
           git push

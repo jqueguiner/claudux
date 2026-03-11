@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$CURRENT_DIR/helpers.sh"
+source "$CURRENT_DIR/profiles.sh"
+
+_sha256() {
+    if command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 | cut -c1-8
+    elif command -v sha256sum >/dev/null 2>&1; then
+        sha256sum | cut -c1-8
+    else
+        cksum | cut -d' ' -f1
+    fi
+}
 
 _PLAN_LIMITS_max_weekly=45000000
 _PLAN_LIMITS_max_monthly=180000000
@@ -24,14 +35,14 @@ _PLAN_LIMITS_free_sonnet=20000000
 _PLAN_LIMITS_free_opus=20000000
 
 _read_subscription_type() {
-    if [[ "$(get_platform)" == "darwin" ]]; then
-        local claude_dir
-        claude_dir=$(get_profile_claude_dir 2>/dev/null)
-        [[ -z "$claude_dir" ]] && claude_dir="$HOME/.claude"
+    local claude_dir
+    claude_dir=$(get_profile_claude_dir 2>/dev/null)
+    [[ -z "$claude_dir" ]] && claude_dir="$HOME/.claude"
 
+    if [[ "$(get_platform)" == "darwin" ]] && command -v security >/dev/null 2>&1; then
         local config_hash=""
         if [[ -n "${CLAUDE_CONFIG_DIR:-}" ]]; then
-            config_hash="-$(printf '%s' "$claude_dir" | shasum -a 256 | cut -c1-8)"
+            config_hash="-$(printf '%s' "$claude_dir" | _sha256)"
         fi
         local service_name="Claude Code-credentials${config_hash}"
 
@@ -51,9 +62,6 @@ try:
 except: pass
 " 2>/dev/null
     else
-        local claude_dir
-        claude_dir=$(get_profile_claude_dir 2>/dev/null)
-        [[ -z "$claude_dir" ]] && claude_dir="$HOME/.claude"
         _try_credentials_file "$claude_dir"
     fi
 }
@@ -76,22 +84,29 @@ except: pass
 }
 
 _try_profile_api() {
-    if [[ "$(get_platform)" == "darwin" ]]; then
-        local claude_dir
-        claude_dir=$(get_profile_claude_dir 2>/dev/null)
-        [[ -z "$claude_dir" ]] && claude_dir="$HOME/.claude"
+    local claude_dir
+    claude_dir=$(get_profile_claude_dir 2>/dev/null)
+    [[ -z "$claude_dir" ]] && claude_dir="$HOME/.claude"
 
+    local creds=""
+
+    if [[ "$(get_platform)" == "darwin" ]] && command -v security >/dev/null 2>&1; then
         local config_hash=""
         if [[ -n "${CLAUDE_CONFIG_DIR:-}" ]]; then
-            config_hash="-$(printf '%s' "$claude_dir" | shasum -a 256 | cut -c1-8)"
+            config_hash="-$(printf '%s' "$claude_dir" | _sha256)"
         fi
         local service_name="Claude Code-credentials${config_hash}"
+        creds=$(security find-generic-password -a "$USER" -s "$service_name" -w 2>/dev/null) || true
+    fi
 
-        local creds
-        creds=$(security find-generic-password -a "$USER" -s "$service_name" -w 2>/dev/null) || return
+    if [[ -z "$creds" ]]; then
+        local creds_file="$claude_dir/.credentials.json"
+        [[ -f "$creds_file" ]] || return
+        creds=$(cat "$creds_file" 2>/dev/null) || return
+    fi
 
-        local token
-        token=$(printf '%s' "$creds" | python3 -c "
+    local token
+    token=$(printf '%s' "$creds" | python3 -c "
 import sys, json
 try:
     d = json.load(sys.stdin)
@@ -102,23 +117,22 @@ try:
 except: pass
 " 2>/dev/null)
 
-        [[ -z "$token" ]] && return
+    [[ -z "$token" ]] && return
 
-        local response
-        response=$(curl -s --max-time 5 "https://api.anthropic.com/api/oauth/profile" \
-            -H "Authorization: Bearer $token" \
-            -H "Content-Type: application/json" 2>/dev/null)
+    local response
+    response=$(curl -s --max-time 5 "https://api.anthropic.com/api/oauth/profile" \
+        -H "Authorization: Bearer $token" \
+        -H "Content-Type: application/json" 2>/dev/null)
 
-        local org_type
-        org_type=$(printf '%s' "$response" | jq -r '.organization.organization_type // empty' 2>/dev/null)
-        case "$org_type" in
-            claude_max)        echo "max" ;;
-            claude_pro)        echo "pro" ;;
-            claude_enterprise) echo "enterprise" ;;
-            claude_team)       echo "team" ;;
-            *)                 return ;;
-        esac
-    fi
+    local org_type
+    org_type=$(printf '%s' "$response" | jq -r '.organization.organization_type // empty' 2>/dev/null)
+    case "$org_type" in
+        claude_max)        echo "max" ;;
+        claude_pro)        echo "pro" ;;
+        claude_enterprise) echo "enterprise" ;;
+        claude_team)       echo "team" ;;
+        *)                 return ;;
+    esac
 }
 
 detect_plan() {

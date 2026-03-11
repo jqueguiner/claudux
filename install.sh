@@ -35,14 +35,67 @@ install_deps_apt() {
     fi
 }
 
+install_deps_dnf() {
+    local missing=()
+    for dep in bash jq curl tmux; do
+        command_exists "$dep" || missing+=("$dep")
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        info "Installing ${missing[*]}..."
+        sudo dnf install -y "${missing[@]}"
+    fi
+}
+
+install_deps_pacman() {
+    local missing=()
+    for dep in bash jq curl tmux; do
+        command_exists "$dep" || missing+=("$dep")
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        info "Installing ${missing[*]}..."
+        sudo pacman -S --noconfirm "${missing[@]}"
+    fi
+}
+
+install_deps_zypper() {
+    local missing=()
+    for dep in bash jq curl tmux; do
+        command_exists "$dep" || missing+=("$dep")
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        info "Installing ${missing[*]}..."
+        sudo zypper install -y "${missing[@]}"
+    fi
+}
+
+install_deps_apk() {
+    local missing=()
+    for dep in bash jq curl tmux; do
+        command_exists "$dep" || missing+=("$dep")
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        info "Installing ${missing[*]}..."
+        apk add --no-cache "${missing[@]}"
+    fi
+}
+
 install_deps() {
     case "$(uname -s)" in
         Darwin) install_deps_brew ;;
         Linux)
             if command_exists apt-get; then
                 install_deps_apt
+            elif command_exists dnf; then
+                install_deps_dnf
+            elif command_exists pacman; then
+                install_deps_pacman
+            elif command_exists zypper; then
+                install_deps_zypper
+            elif command_exists apk; then
+                install_deps_apk
             else
-                err "Unsupported package manager. Install manually: bash 4.0+, jq, curl, tmux"
+                err "No supported package manager found (apt, dnf, pacman, zypper, apk)."
+                err "Install manually: bash 4.0+, jq, curl, tmux"
                 exit 1
             fi
             ;;

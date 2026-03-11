@@ -108,20 +108,12 @@ print('ok')
 
 get_session_count() {
     local count=0
-    if [[ "$(get_platform)" == "darwin" ]]; then
-        count=$(pgrep -f "claude" 2>/dev/null | wc -l | tr -d ' ')
-    else
-        count=$(pgrep -f "claude" 2>/dev/null | wc -l | tr -d ' ')
-    fi
+    count=$(pgrep -f "claude" 2>/dev/null | wc -l | tr -d ' ')
     printf '%d' "${count:-0}"
 }
 
 get_session_memory() {
-    if [[ "$(get_platform)" == "darwin" ]]; then
-        ps -eo rss,comm 2>/dev/null | awk '/claude/ {sum+=$1} END {printf "%d", sum/1024}'
-    else
-        ps -eo rss,comm 2>/dev/null | awk '/claude/ {sum+=$1} END {printf "%d", sum/1024}'
-    fi
+    ps -eo rss,comm 2>/dev/null | awk '/claude/ {sum+=$1} END {printf "%d", sum/1024}'
 }
 
 _rl_history_file() {
@@ -158,7 +150,9 @@ get_rate_limit_history() {
 get_workspace_vitals() {
     local cpu_pct mem_pct disk_pct
     if [[ "$(get_platform)" == "darwin" ]]; then
-        cpu_pct=$(ps -A -o %cpu 2>/dev/null | awk '{s+=$1} END {printf "%d", s/'"$(sysctl -n hw.ncpu 2>/dev/null || echo 1)"'*100/100}' 2>/dev/null || echo 0)
+        local ncpu
+        ncpu=$(sysctl -n hw.ncpu 2>/dev/null || echo 1)
+        cpu_pct=$(ps -A -o %cpu 2>/dev/null | awk '{s+=$1} END {printf "%d", s/'"$ncpu"'*100/100}' 2>/dev/null || echo 0)
         mem_pct=$(vm_stat 2>/dev/null | python3 -c "
 import sys
 d = {}
@@ -177,10 +171,12 @@ used = active + wired + compressed
 print(int(used * 100 / total) if total > 0 else 0)
 " 2>/dev/null || echo 0)
     else
-        cpu_pct=$(awk '{printf "%d", $1*100/'"$(nproc 2>/dev/null || echo 1)"'}' /proc/loadavg 2>/dev/null || echo 0)
-        mem_pct=$(awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END {printf "%d", (t-a)*100/t}' /proc/meminfo 2>/dev/null || echo 0)
+        local ncpu
+        ncpu=$(nproc 2>/dev/null || grep -c '^processor' /proc/cpuinfo 2>/dev/null || echo 1)
+        cpu_pct=$(awk '{printf "%d", ($1*100)/'"$ncpu"'}' /proc/loadavg 2>/dev/null || echo 0)
+        mem_pct=$(awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END {if(t>0) printf "%d", (t-a)*100/t; else print 0}' /proc/meminfo 2>/dev/null || echo 0)
     fi
-    disk_pct=$(df -h / 2>/dev/null | awk 'NR==2 {gsub(/%/,"",$5); printf "%d", $5}' || echo 0)
+    disk_pct=$(df / 2>/dev/null | awk 'NR==2 {gsub(/%/,"",$5); printf "%d", $5}' || echo 0)
     printf '%d %d %d' "$cpu_pct" "$mem_pct" "$disk_pct"
 }
 
